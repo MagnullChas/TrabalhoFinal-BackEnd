@@ -1,4 +1,5 @@
 plugins {
+	kotlin("plugin.jpa") version "2.2.21"
 	kotlin("jvm") version "2.2.21"
 	kotlin("plugin.spring") version "2.2.21"
 	id("org.springframework.boot") version "4.0.8"
@@ -28,6 +29,10 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+	//Banco de Dados
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")//Entidades e repositórios JPA
+	runtimeOnly("com.h2database:h2") //h2 funciona em memória durante desenvolvimento
 }
 
 kotlin {
