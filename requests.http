@@ -1,0 +1,55 @@
+### Roteiro de teste (IntelliJ HTTP Client). Rode na ordem.
+
+### 1. Cadastrar organizador (público)
+POST http://localhost:8080/organizadores
+Content-Type: application/json
+
+{ "nome": "Ana Organizadora", "email": "ana@org.com", "senha": "123456" }
+
+### 2. Login do organizador -> guarda o token
+POST http://localhost:8080/auth/organizadores/login
+Content-Type: application/json
+
+{ "email": "ana@org.com", "senha": "123456" }
+
+> {% client.global.set("tokenOrg", response.body.token); %}
+
+### 3. Criar evento (só organizador)
+POST http://localhost:8080/eventos
+Authorization: Bearer {{tokenOrg}}
+Content-Type: application/json
+
+{ "nome": "Semana de TI", "descricao": "Palestras", "local": "Auditório",
+  "data": "2027-05-10", "hora": "19:00:00", "capacidade": 50 }
+
+### 4. Cadastrar participante no evento 1 (público)
+POST http://localhost:8080/participantes
+Content-Type: application/json
+
+{ "nome": "Bruno", "email": "bruno@mail.com", "senha": "abcdef", "eventoId": 1 }
+
+### 5. Login do participante -> guarda o token
+POST http://localhost:8080/auth/participantes/login
+Content-Type: application/json
+
+{ "email": "bruno@mail.com", "senha": "abcdef" }
+
+> {% client.global.set("tokenPart", response.body.token); %}
+
+### 6. Participante vê o próprio cadastro (200)
+GET http://localhost:8080/participantes/1
+Authorization: Bearer {{tokenPart}}
+
+### 7. Participante tentando criar evento (403)
+POST http://localhost:8080/eventos
+Authorization: Bearer {{tokenPart}}
+Content-Type: application/json
+
+{ "nome": "X", "descricao": "X", "local": "X", "data": "2027-05-10", "hora": "19:00:00", "capacidade": 1 }
+
+### 8. Sem token em rota protegida (401)
+DELETE http://localhost:8080/eventos/1
+
+### 9. Organizador lista participantes (200)
+GET http://localhost:8080/participantes?eventoId=1
+Authorization: Bearer {{tokenOrg}}
