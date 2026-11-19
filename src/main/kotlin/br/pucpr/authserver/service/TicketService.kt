@@ -20,10 +20,7 @@ class TicketService(
     private val eventoRepository: EventoRepository
 ) {
 
-    /**
-     * O próprio participante emite o seu ticket; um organizador pode emitir para qualquer participante.
-     * Não emite se o participante já tem ticket no evento ou se o evento já atingiu a capacidade.
-     */
+
     @Transactional
     fun criar(request: TicketRequest, solicitante: UsuarioAutenticado): TicketResponse {
         val participante = participanteRepository.findById(request.participanteId).orElseThrow {
@@ -31,7 +28,6 @@ class TicketService(
         }
         exigirDonoOuOrganizador(participante, solicitante)
 
-        // Trava o evento durante a transação para a contagem de capacidade ser confiável
         val evento = eventoRepository.buscarComTrava(request.eventoId)
             ?: throw NoSuchElementException("Evento com ID ${request.eventoId} não encontrado.")
 
@@ -48,7 +44,6 @@ class TicketService(
         return ticketRepository.save(ticket).toResponse()
     }
 
-    /** Apenas organizador (garantido no SecurityConfig). Filtros opcionais por evento e participante. */
     fun listar(eventoId: Long?, participanteId: Long?): List<TicketResponse> {
         val tickets = when {
             eventoId != null && participanteId != null ->
@@ -60,14 +55,12 @@ class TicketService(
         return tickets.map { it.toResponse() }
     }
 
-    /** Organizador vê qualquer ticket; participante só vê os próprios. */
     fun buscarPorId(id: Long, solicitante: UsuarioAutenticado): TicketResponse {
         val ticket = buscarEntidade(id)
         exigirDonoOuOrganizador(ticket.participante, solicitante)
         return ticket.toResponse()
     }
 
-    /** O dono cancela o próprio ticket (liberando a vaga no evento), ou um organizador remove. */
     fun excluir(id: Long, solicitante: UsuarioAutenticado) {
         val ticket = buscarEntidade(id)
         exigirDonoOuOrganizador(ticket.participante, solicitante)
