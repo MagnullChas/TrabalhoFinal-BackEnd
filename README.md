@@ -1,5 +1,8 @@
 Participantes:
 
-Cassiano Magno Chagas
-Julia Portela
+Cassiano Magno Chagas,
+Julia Portela,
 Pedro Henrique Schneider
+
+Vídeo:
+
