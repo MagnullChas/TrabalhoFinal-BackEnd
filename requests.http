@@ -1,0 +1,154 @@
+### Roteiro de teste (IntelliJ HTTP Client). Rode na ordem.
+
+### 1. Cadastrar organizador (público)
+POST http://localhost:8080/organizadores
+Content-Type: application/json
+
+{ "nome": "Ana Organizadora", "email": "ana@org.com", "senha": "123456" }
+
+### 2. Login do organizador -> guarda o token
+POST http://localhost:8080/auth/organizadores/login
+Content-Type: application/json
+
+{ "email": "ana@org.com", "senha": "123456" }
+
+> {% client.global.set("tokenOrg", response.body.token); %}
+
+### 3. Criar evento (só organizador)
+POST http://localhost:8080/eventos
+Authorization: Bearer {{tokenOrg}}
+Content-Type: application/json
+
+{ "nome": "Semana de TI", "descricao": "Palestras", "local": "Auditório",
+  "data": "2027-05-10", "hora": "19:00:00", "capacidade": 50 }
+
+### 4. Cadastrar participante (público)
+POST http://localhost:8080/participantes
+Content-Type: application/json
+
+{ "nome": "Bruno", "email": "bruno@mail.com", "senha": "abcdef" }
+
+### 5. Login do participante -> guarda o token
+POST http://localhost:8080/auth/participantes/login
+Content-Type: application/json
+
+{ "email": "bruno@mail.com", "senha": "abcdef" }
+
+> {% client.global.set("tokenPart", response.body.token); %}
+
+### 6. Participante vê o próprio cadastro (200)
+GET http://localhost:8080/participantes/1
+Authorization: Bearer {{tokenPart}}
+
+### 7. Participante tentando criar evento (403)
+POST http://localhost:8080/eventos
+Authorization: Bearer {{tokenPart}}
+Content-Type: application/json
+
+{ "nome": "X", "descricao": "X", "local": "X", "data": "2027-05-10", "hora": "19:00:00", "capacidade": 1 }
+
+### 8. Sem token em rota protegida (401)
+DELETE http://localhost:8080/eventos/1
+
+### 9. Organizador lista participantes (200)
+GET http://localhost:8080/participantes?eventoId=1
+Authorization: Bearer {{tokenOrg}}
+
+### 10. Participante emite o próprio ticket para o evento 1 (201)
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenPart}}
+Content-Type: application/json
+
+{ "participanteId": 1, "eventoId": 1 }
+
+### 11. Mesmo participante, mesmo evento de novo (409)
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenPart}}
+Content-Type: application/json
+
+{ "participanteId": 1, "eventoId": 1 }
+
+### 12. Criar o evento 2 com capacidade 1 (só organizador)
+POST http://localhost:8080/eventos
+Authorization: Bearer {{tokenOrg}}
+Content-Type: application/json
+
+{ "nome": "Workshop Kotlin", "descricao": "Vagas limitadas", "local": "Lab 3",
+  "data": "2027-06-15", "hora": "14:00:00", "capacidade": 1 }
+
+### 13. Mesmo participante em outro evento (201) -> 1 participante, 2 tickets
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenPart}}
+Content-Type: application/json
+
+{ "participanteId": 1, "eventoId": 2 }
+
+### 14. Cadastrar segundo participante
+POST http://localhost:8080/participantes
+Content-Type: application/json
+
+{ "nome": "Carla", "email": "carla@mail.com", "senha": "abcdef" }
+
+### 15. Login da Carla -> guarda o token
+POST http://localhost:8080/auth/participantes/login
+Content-Type: application/json
+
+{ "email": "carla@mail.com", "senha": "abcdef" }
+
+> {% client.global.set("tokenCarla", response.body.token); %}
+
+### 16. Evento 2 já lotado (409)
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenCarla}}
+Content-Type: application/json
+
+{ "participanteId": 2, "eventoId": 2 }
+
+### 17. Carla tentando emitir ticket em nome do Bruno (403)
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenCarla}}
+Content-Type: application/json
+
+{ "participanteId": 1, "eventoId": 1 }
+
+### 18. Carla emite o próprio ticket para o evento 1 (201) -> evento 1 com 2 tickets
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenCarla}}
+Content-Type: application/json
+
+{ "participanteId": 2, "eventoId": 1 }
+
+### 19. Organizador reduz capacidade do evento 1 para 1, abaixo dos 2 tickets emitidos (409)
+PUT http://localhost:8080/eventos/1
+Authorization: Bearer {{tokenOrg}}
+Content-Type: application/json
+
+{ "nome": "Semana de TI", "descricao": "Palestras", "local": "Auditório",
+  "data": "2027-05-10", "hora": "19:00:00", "capacidade": 1 }
+
+### 20. Participante vê o próprio ticket (200)
+GET http://localhost:8080/tickets/1
+Authorization: Bearer {{tokenPart}}
+
+### 21. Participante tentando listar todos os tickets (403)
+GET http://localhost:8080/tickets
+Authorization: Bearer {{tokenPart}}
+
+### 22. Organizador lista tickets do evento 2 (200)
+GET http://localhost:8080/tickets?eventoId=2
+Authorization: Bearer {{tokenOrg}}
+
+### 23. Organizador lista participantes do evento 1 (200)
+GET http://localhost:8080/participantes?eventoId=1
+Authorization: Bearer {{tokenOrg}}
+
+### 24. Cancelar o ticket do evento 2, liberando a vaga (204)
+DELETE http://localhost:8080/tickets/2
+Authorization: Bearer {{tokenPart}}
+
+### 25. Agora a Carla consegue o ticket do evento 2 (201)
+POST http://localhost:8080/tickets
+Authorization: Bearer {{tokenCarla}}
+Content-Type: application/json
+
+{ "participanteId": 2, "eventoId": 2 }
